@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#0A0D14] text-slate-200">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GSD Quality Assurance Audit System</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Geist', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"Geist Mono"', 'monospace'],
+          },
+          colors: {
+            surface: {
+              base: '#0A0D14',
+              subtle: '#0F1420',
+              card: '#131929',
+              elevated: '#182034',
+              border: '#1F293D',
+              borderLight: '#2A364F'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Geist', sans-serif;
+      background-color: #0A0D14;
+      color: #E2E8F0;
+    }
+    .tnum { font-variant-numeric: tabular-nums; }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #0A0D14; }
+    ::-webkit-scrollbar-thumb { background: #1F293D; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #2A364F; }
+  </style>
+</head>
+<body class="h-full flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+
+  <!-- COMMAND NAVIGATION BAR -->
+  <header class="border-b border-surface-border bg-surface-subtle/80 backdrop-blur sticky top-0 z-40 px-6 py-3.5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- System Identification -->
+      <div class="flex items-center gap-3">
+        <div class="h-8 w-8 rounded-lg bg-blue-600/10 border border-blue-500/20 flex items-center justify-center">
+          <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm font-semibold tracking-tight text-white">GSD Quality Assurance Portal</h1>
+            <span class="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-surface-elevated text-slate-400 border border-surface-border">v2.0</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Global Service Desk Operations</p>
+        </div>
+      </div>
+
+      <!-- Controls & Filtering -->
+      <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-1.5 bg-surface-card border border-surface-border rounded-lg px-2.5 py-1.5 text-xs text-slate-300">
+          <label for="monthSelect" class="text-slate-500 font-mono text-[10px] uppercase">Audit Cycle</label>
+          <select id="monthSelect" onchange="onMonthChange()" class="bg-transparent font-medium text-white focus:outline-none cursor-pointer pr-1">
+            <option value="November 2026" class="bg-surface-card text-white">November 2026</option>
+            <option value="October 2026" class="bg-surface-card text-white">October 2026</option>
+          </select>
+        </div>
+
+        <button onclick="loadAllData()" class="h-8 px-2.5 rounded-lg bg-surface-card hover:bg-surface-elevated border border-surface-border text-slate-300 text-xs font-medium transition flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+          </svg>
+          Sync Data
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- INTEGRATED AUDIT METRIC SUMMARY -->
+  <section class="border-b border-surface-border bg-surface-base px-6 py-4">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+      
+      <!-- Primary Completion Meter -->
+      <div class="flex items-center gap-4">
+        <div class="space-y-1">
+          <div class="flex items-baseline gap-2">
+            <span class="text-2xl font-bold tracking-tight text-white tnum" id="metricComplianceRate">0%</span>
+            <span class="text-xs text-slate-400">Total Program Compliance</span>
+          </div>
+          <div class="w-48 h-1.5 rounded-full bg-surface-card overflow-hidden">
+            <div id="complianceBar" class="h-full bg-blue-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+        </div>
+        <div class="h-8 w-px bg-surface-border hidden md:block"></div>
+        <div class="text-xs text-slate-400 leading-tight">
+          <span class="text-white font-medium tnum" id="metricTotalAuditsRatio">0 / 0</span> audits executed<br />
+          <span class="text-slate-500 font-mono text-[10px]" id="metricActiveStaffCount">0 active technicians tracked</span>
+        </div>
+      </div>
+
+      <!-- Segment Performance Breakdown -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+        <div class="px-3 py-2 rounded-lg bg-surface-subtle border border-surface-border flex flex-col gap-0.5 min-w-[130px]">
+          <span class="text-[10px] font-mono uppercase tracking-wider text-slate-500">T1 Outage</span>
+          <span class="text-sm font-semibold text-slate-200 tnum" id="metricT1Outage">0 / 0</span>
+        </div>
+
+        <div class="px-3 py-2 rounded-lg bg-surface-subtle border border-surface-border flex flex-col gap-0.5 min-w-[130px]">
+          <span class="text-[10px] font-mono uppercase tracking-wider text-slate-500">T1 Helpdesk</span>
+          <span class="text-sm font-semibold text-slate-200 tnum" id="metricT1Helpdesk">0 / 0</span>
+        </div>
+
+        <div class="px-3 py-2 rounded-lg bg-surface-subtle border border-surface-border flex flex-col gap-0.5 min-w-[130px]">
+          <span class="text-[10px] font-mono uppercase tracking-wider text-slate-500">T1 Password/MFA</span>
+          <span class="text-sm font-semibold text-slate-200 tnum" id="metricT1Ping">0 / 0</span>
+        </div>
+
+        <div class="px-3 py-2 rounded-lg bg-surface-subtle border border-surface-border flex flex-col gap-0.5 min-w-[130px]">
+          <span class="text-[10px] font-mono uppercase tracking-wider text-slate-500">T2 Sign-off</span>
+          <span class="text-sm font-semibold text-slate-200 tnum" id="metricT2Signoff">0 / 0</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- WORKSPACE BODY (MASTER-DETAIL ARCHITECTURE) -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden">
+
+    <!-- LEFT: TECHNICIAN DIRECTORY (5 Columns) -->
+    <section class="lg:col-span-5 flex flex-col rounded-xl border border-surface-border bg-surface-subtle overflow-hidden">
+      
+      <!-- Directory Search & Segment Filters -->
+      <div class="p-3 border-b border-surface-border bg-surface-card/60 flex flex-col gap-2.5">
+        <div class="relative">
+          <input
+            type="text"
+            id="searchInput"
+            oninput="renderRoster()"
+            placeholder="Filter technicians by name..."
+            class="w-full h-8 pl-8 pr-3 text-xs bg-surface-base border border-surface-border rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition"
+          />
+          <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.75">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+        </div>
+
+        <div class="flex items-center gap-1.5 text-xs">
+          <button onclick="setFilter('all')" id="btnFilterAll" class="px-2.5 py-1 rounded text-[11px] font-medium bg-surface-elevated text-white border border-surface-borderLight transition">
+            All (<span id="countAll">0</span>)
+          </button>
+          <button onclick="setFilter('pending')" id="btnFilterPending" class="px-2.5 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-surface-elevated transition">
+            Pending Quota (<span id="countPending">0</span>)
+          </button>
+          <button onclick="setFilter('done')" id="btnFilterDone" class="px-2.5 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-surface-elevated transition">
+            Completed (<span id="countDone">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- Technician Cards Scroll Area -->
+      <div id="rosterContainer" class="flex-1 overflow-y-auto divide-y divide-surface-border/50 p-2 space-y-1">
+        <div class="p-8 text-center text-xs text-slate-500">Loading technician records...</div>
+      </div>
+    </section>
+
+    <!-- RIGHT: AUDIT WORKBENCH (7 Columns) -->
+    <section class="lg:col-span-7 flex flex-col rounded-xl border border-surface-border bg-surface-subtle overflow-hidden">
+      
+      <!-- Stage Header -->
+      <div class="px-5 py-4 border-b border-surface-border bg-surface-card/60 flex items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 id="stageTechnicianName" class="text-sm font-semibold text-white">No Technician Selected</h2>
+            <span id="stageTechnicianRole" class="hidden text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-elevated text-slate-300 border border-surface-border">T1</span>
+          </div>
+          <p id="stageTechnicianStatus" class="text-xs text-slate-500 mt-0.5">Select a staff member from the directory to review interactions and record audits.</p>
+        </div>
+
+        <!-- Stream Switcher Tabs -->
+        <div id="streamTabs" class="hidden flex items-center gap-1 bg-surface-base p-1 rounded-lg border border-surface-border text-xs">
+          <button onclick="selectStream('Outage')" id="tabOutage" class="px-2.5 py-1 rounded font-medium text-slate-300 transition">Outage</button>
+          <button onclick="selectStream('Helpdesk')" id="tabHelpdesk" class="px-2.5 py-1 rounded font-medium text-slate-300 transition">Helpdesk</button>
+          <button onclick="selectStream('Password/PingID')" id="tabPing" class="px-2.5 py-1 rounded font-medium text-slate-300 transition">Password</button>
+        </div>
+      </div>
+
+      <!-- Stage Content -->
+      <div id="stageContent" class="flex-1 p-5 flex flex-col justify-between overflow-y-auto">
+        
+        <!-- Empty State -->
+        <div id="stageEmptyPrompt" class="h-full flex flex-col items-center justify-center text-center p-8 text-slate-500">
+          <svg class="w-10 h-10 text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+          </svg>
+          <p class="text-xs text-slate-400 font-medium">Select a technician to inspect records</p>
+          <p class="text-[11px] text-slate-600 max-w-xs mt-1">Audit status, eligible candidate tickets, and deep links will populate here.</p>
+        </div>
+
+        <!-- Populated View -->
+        <div id="stageActiveView" class="hidden flex flex-col gap-4">
+          
+          <!-- Stream Quota Banner -->
+          <div id="quotaBanner" class="p-3.5 rounded-lg border flex items-center justify-between text-xs">
+            <div class="flex items-center gap-2">
+              <span id="quotaIndicatorDot" class="w-2 h-2 rounded-full"></span>
+              <span id="quotaBannerMessage" class="text-slate-300">Auditing status</span>
+            </div>
+            <span id="quotaStreamTag" class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-surface-elevated text-slate-400 border border-surface-border">OUTAGE</span>
+          </div>
+
+          <!-- Eligible Tickets Section -->
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[11px] font-mono uppercase tracking-wider text-slate-400">Available Interactions (<span id="eligibleCount">0</span>)</span>
+              <span class="text-[11px] text-slate-500">Pick a ticket to review</span>
+            </div>
+            <div id="ticketsList" class="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+
+          <!-- Selected Ticket Details Card -->
+          <div id="ticketInspectionCard" class="rounded-lg border border-surface-border bg-surface-card p-4 flex flex-col gap-3">
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="text-xs font-mono font-semibold text-blue-400" id="ticketIdLabel">INCxxxxxxx</span>
+                <p class="text-xs text-slate-300 font-medium mt-0.5" id="ticketSummaryLabel">Ticket Summary</p>
+              </div>
+              <a id="teamsLinkAnchor" href="#" target="_blank" class="h-7 px-2.5 rounded bg-surface-elevated hover:bg-surface-border text-slate-300 text-xs font-medium border border-surface-border flex items-center gap-1.5 transition">
+                <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.75">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                </svg>
+                View in Teams
+              </a>
+            </div>
+
+            <div class="text-[11px] text-slate-400 font-mono bg-surface-base p-2.5 rounded border border-surface-border/60 leading-relaxed whitespace-pre-wrap" id="ticketBodyContent">
+              No ticket selected.
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Footer Audit Action Area -->
+        <div id="stageFooter" class="hidden pt-4 border-t border-surface-border mt-4 flex items-center justify-between">
+          <p class="text-[11px] text-slate-500">
+            Records permanent audit entry in <span class="font-mono text-slate-400">QA Audit Log</span> with auditor identity.
+          </p>
+          <button id="btnSubmitAudit" onclick="submitAuditAction()" class="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+            </svg>
+            Record Audit
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- JAVASCRIPT PROGRAM ENGINE -->
+  <script>
+    const SITE_URL = "https://teletechinc.sharepoint.com/sites/IT/GlobalServiceDesk";
+    const IS_SHAREPOINT = window.location.hostname.includes("sharepoint.com");
+
+    const appState = {
+      month: "November 2026",
+      filter: "all",
+      selectedTechnician: null,
+      activeStream: "Outage",
+      selectedTicket: null,
+      rawOutages: [],
+      rawCallposts: [],
+      rawAudits: [],
+      roster: []
+    };
+
+    // Baseline mock records for local offline development
+    const MOCK_OUTAGES = [
+      { Title: "INC27684916", T1Analyst: "Narapinni, Sai", T2Analyst: "Agustin, Mark", Status: "Completed", CompletionMonth: "November 2026", MessageLink: "https://teams.microsoft.com", Audited: false },
+      { Title: "INC27711001", T1Analyst: "Gonzales, Patrick Joshua", T2Analyst: "Basa, Michael John", Status: "Completed", CompletionMonth: "November 2026", MessageLink: "https://teams.microsoft.com", Audited: false },
+      { Title: "INC27708740", T1Analyst: "Khan, B Saqib", T2Analyst: "Basa, Michael John", Status: "Completed", CompletionMonth: "November 2026", MessageLink: "https://teams.microsoft.com", Audited: false },
+      { Title: "INC27712032", T1Analyst: "Alvarez, John Daniel", T2Analyst: "Agustin, Mark", Status: "Completed", CompletionMonth: "November 2026", MessageLink: "https://teams.microsoft.com", Audited: false }
+    ];
+
+    const MOCK_CALLPOSTS = [
+      { Title: "INC27712032", Analyst: "Alvarez, John Daniel", Category: "Helpdesk", PostedMonth: "November 2026", MessageLink: "https://teams.microsoft.com", Audited: false, Snippet: "Energy Australia | IrisDe Guzman | Unable to Access TTEC Links" },
+      { Title: "INC99999999", Analyst: "Samosino, Louis Jefferson", Category: "Password/PingID", PostedMonth: "November 2026", MessageLink: "https://teams.microsoft.com", Audited: false, Snippet: "Test Client | User password reset procedure verified" },
+      { Title: "INC27739092", Analyst: "Rebong, Limuel", Category: "Password/PingID", PostedMonth: "November 2026", MessageLink: "https://teams.microsoft.com", Audited: false, Snippet: "Verizon - Unpair Ping ID token reset" },
+      { Title: "INC27719901", Analyst: "Gonzales, Patrick Joshua", Category: "Helpdesk", PostedMonth: "November 2026", MessageLink: "https://teams.microsoft.com", Audited: false, Snippet: "Energy Australia | SAP portal authentication fault" },
+      { Title: "INC27719902", Analyst: "Gonzales, Patrick Joshua", Category: "Password/PingID", PostedMonth: "November 2026", MessageLink: "https://teams.microsoft.com", Audited: false, Snippet: "Verizon Wireless | PingID pairing re-enrollment" }
+    ];
+
+    const MOCK_AUDITS = [
+      { Title: "INC27684916", RoleAudited: "T2", AnalystAudited: "Agustin, Mark", AuditMonth: "November 2026", AuditCategory: "Outage", PulledBy: "Louis Samosino" }
+    ];
+
+    window.addEventListener("DOMContentLoaded", () => {
+      loadAllData();
+    });
+
+    function onMonthChange() {
+      appState.month = document.getElementById("monthSelect").value;
+      rebuildRoster();
+    }
+
+    async function loadAllData() {
+      if (!IS_SHAREPOINT) {
+        appState.rawOutages = MOCK_OUTAGES;
+        appState.rawCallposts = MOCK_CALLPOSTS;
+        appState.rawAudits = MOCK_AUDITS;
+        rebuildRoster();
+        return;
+      }
+
+      try {
+        const headers = { "Accept": "application/json;odata=verbose" };
+        const [resOutages, resCallposts, resAudits] = await Promise.all([
+          fetch(`${SITE_URL}/_api/web/lists/getbytitle('Outage Sign-off Log')/items?$top=1000`, { headers }).then(r => r.json()),
+          fetch(`${SITE_URL}/_api/web/lists/getbytitle('Callpost Log')/items?$top=1000`, { headers }).then(r => r.json()),
+          fetch(`${SITE_URL}/_api/web/lists/getbytitle('QA Audit Log')/items?$top=1000`, { headers }).then(r => r.json())
+        ]);
+
+        appState.rawOutages = resOutages.d?.results || [];
+        appState.rawCallposts = resCallposts.d?.results || [];
+        appState.rawAudits = resAudits.d?.results || [];
+      } catch (err) {
+        console.warn("SharePoint endpoint unreachable. Falling back to local data.", err);
+        appState.rawOutages = MOCK_OUTAGES;
+        appState.rawCallposts = MOCK_CALLPOSTS;
+        appState.rawAudits = MOCK_AUDITS;
+      }
+
+      rebuildRoster();
+    }
+
+    function rebuildRoster() {
+      const month = appState.month;
+      const technicianMap = new Map();
+
+      // Extract from Outage records
+      appState.rawOutages
+        .filter(o => o.CompletionMonth === month && (o.Status === "Completed" || o.Status?.Value === "Completed"))
+        .forEach(o => {
+          if (o.T1Analyst && !technicianMap.has(o.T1Analyst)) {
+            technicianMap.set(o.T1Analyst, { name: o.T1Analyst, role: "T1" });
+          }
+          if (o.T2Analyst && !technicianMap.has(o.T2Analyst)) {
+            technicianMap.set(o.T2Analyst, { name: o.T2Analyst, role: "T2" });
+          }
+        });
+
+      // Extract from Callpost records
+      appState.rawCallposts
+        .filter(c => c.PostedMonth === month && c.Analyst)
+        .forEach(c => {
+          if (!technicianMap.has(c.Analyst)) {
+            technicianMap.set(c.Analyst, { name: c.Analyst, role: "T1" });
+          }
+        });
+
+      // Evaluate audit fulfillment
+      appState.roster = Array.from(technicianMap.values()).map(tech => {
+        const audits = appState.rawAudits.filter(a => a.AuditMonth === month && a.AnalystAudited === tech.name);
+
+        const outageDone = audits.some(a => a.AuditCategory === "Outage" || a.AuditCategory?.Value === "Outage" || !a.AuditCategory);
+        const helpdeskDone = audits.some(a => a.AuditCategory === "Helpdesk" || a.AuditCategory?.Value === "Helpdesk");
+        const pingDone = audits.some(a => a.AuditCategory === "Password/PingID" || a.AuditCategory?.Value === "Password/PingID");
+
+        let fulfilled = 0;
+        const target = tech.role === "T1" ? 3 : 1;
+
+        if (tech.role === "T1") {
+          if (outageDone) fulfilled++;
+          if (helpdeskDone) fulfilled++;
+          if (pingDone) fulfilled++;
+        } else {
+          if (outageDone) fulfilled++;
+        }
+
+        return {
+          ...tech,
+          outageDone,
+          helpdeskDone,
+          pingDone,
+          fulfilled,
+          target,
+          ratio: Math.round((fulfilled / target) * 100),
+          isComplete: fulfilled === target
+        };
+      });
+
+      // Sort: incomplete first, then alphabetical
+      appState.roster.sort((a, b) => a.fulfilled - b.fulfilled || a.name.localeCompare(b.name));
+
+      updateMetrics();
+      renderRoster();
+
+      if (appState.selectedTechnician) {
+        const refreshed = appState.roster.find(r => r.name === appState.selectedTechnician.name);
+        if (refreshed) {
+          appState.selectedTechnician = refreshed;
+          renderWorkbench();
+        }
+      }
+    }
+
+    function updateMetrics() {
+      const t1s = appState.roster.filter(r => r.role === "T1");
+      const t2s = appState.roster.filter(r => r.role === "T2");
+
+      const t1Outage = t1s.filter(r => r.outageDone).length;
+      const t1Helpdesk = t1s.filter(r => r.helpdeskDone).length;
+      const t1Ping = t1s.filter(r => r.pingDone).length;
+      const t2Outage = t2s.filter(r => r.outageDone).length;
+
+      document.getElementById("metricT1Outage").innerText = `${t1Outage} / ${t1s.length}`;
+      document.getElementById("metricT1Helpdesk").innerText = `${t1Helpdesk} / ${t1s.length}`;
+      document.getElementById("metricT1Ping").innerText = `${t1Ping} / ${t1s.length}`;
+      document.getElementById("metricT2Signoff").innerText = `${t2Outage} / ${t2s.length}`;
+
+      const totalTarget = (t1s.length * 3) + t2s.length;
+      const totalFulfilled = t1Outage + t1Helpdesk + t1Ping + t2Outage;
+      const compliance = totalTarget > 0 ? Math.round((totalFulfilled / totalTarget) * 100) : 0;
+
+      document.getElementById("metricComplianceRate").innerText = `${compliance}%`;
+      document.getElementById("complianceBar").style.width = `${compliance}%`;
+      document.getElementById("metricTotalAuditsRatio").innerText = `${totalFulfilled} / ${totalTarget}`;
+      document.getElementById("metricActiveStaffCount").innerText = `${appState.roster.length} active technicians tracked`;
+
+      document.getElementById("countAll").innerText = appState.roster.length;
+      document.getElementById("countPending").innerText = appState.roster.filter(r => !r.isComplete).length;
+      document.getElementById("countDone").innerText = appState.roster.filter(r => r.isComplete).length;
+    }
+
+    function setFilter(filterType) {
+      appState.filter = filterType;
+      const types = ["All", "Pending", "Done"];
+      types.forEach(t => {
+        const btn = document.getElementById(`btnFilter${t}`);
+        if (t.toLowerCase() === filterType) {
+          btn.className = "px-2.5 py-1 rounded text-[11px] font-medium bg-surface-elevated text-white border border-surface-borderLight transition";
+        } else {
+          btn.className = "px-2.5 py-1 rounded text-[11px] font-medium text-slate-400 hover:text-white hover:bg-surface-elevated transition";
+        }
+      });
+      renderRoster();
+    }
+
+    function renderRoster() {
+      const container = document.getElementById("rosterContainer");
+      const search = (document.getElementById("searchInput").value || "").toLowerCase();
+
+      let list = appState.roster;
+      if (appState.filter === "pending") list = list.filter(r => !r.isComplete);
+      if (appState.filter === "done") list = list.filter(r => r.isComplete);
+      if (search) list = list.filter(r => r.name.toLowerCase().includes(search));
+
+      if (list.length === 0) {
+        container.innerHTML = `<div class="p-8 text-center text-xs text-slate-500">No technicians match search criteria.</div>`;
+        return;
+      }
+
+      container.innerHTML = list.map(tech => {
+        const isSelected = appState.selectedTechnician?.name === tech.name;
+        return `
+          <div onclick="selectTechnician('${tech.name}')" class="p-3 rounded-lg transition cursor-pointer border ${
+            isSelected
+              ? 'bg-surface-card border-blue-500/80 shadow-sm'
+              : 'bg-surface-card/40 border-surface-border hover:bg-surface-card hover:border-surface-borderLight'
+          }">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-white tracking-tight">${tech.name}</span>
+                <span class="text-[10px] font-mono px-1 rounded bg-surface-elevated text-slate-400 border border-surface-border">${tech.role}</span>
+              </div>
+              <span class="text-[11px] font-mono font-medium ${tech.isComplete ? 'text-emerald-400' : 'text-slate-400'}">
+                ${tech.fulfilled}/${tech.target}
+              </span>
+            </div>
+
+            <!-- Segment Badges -->
+            <div class="flex items-center gap-1.5 text-[10px] font-mono">
+              <span class="px-1.5 py-0.5 rounded border ${
+                tech.outageDone
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+              }">
+                Outage ${tech.outageDone ? 'OK' : 'PENDING'}
+              </span>
+
+              ${tech.role === 'T1' ? `
+                <span class="px-1.5 py-0.5 rounded border ${
+                  tech.helpdeskDone
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                }">
+                  HD ${tech.helpdeskDone ? 'OK' : 'PENDING'}
+                </span>
+                <span class="px-1.5 py-0.5 rounded border ${
+                  tech.pingDone
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                }">
+                  Ping ${tech.pingDone ? 'OK' : 'PENDING'}
+                </span>
+              ` : `
+                <span class="text-[10px] text-slate-500">Sign-off Quota</span>
+              `}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function selectTechnician(name) {
+      const tech = appState.roster.find(r => r.name === name);
+      if (!tech) return;
+
+      appState.selectedTechnician = tech;
+      renderRoster();
+
+      document.getElementById("stageTechnicianName").innerText = tech.name;
+      const roleTag = document.getElementById("stageTechnicianRole");
+      roleTag.innerText = tech.role;
+      roleTag.classList.remove("hidden");
+      document.getElementById("stageTechnicianStatus").innerText = `${tech.role} Technician - Quota Status: ${tech.fulfilled} of ${tech.target} fulfilled (${tech.ratio}%)`;
+
+      const streamTabs = document.getElementById("streamTabs");
+      streamTabs.classList.remove("hidden");
+
+      // Auto-focus first unfulfilled stream
+      if (tech.role === "T1") {
+        if (!tech.outageDone) selectStream("Outage");
+        else if (!tech.helpdeskDone) selectStream("Helpdesk");
+        else if (!tech.pingDone) selectStream("Password/PingID");
+        else selectStream("Outage");
+      } else {
+        selectStream("Outage");
+      }
+    }
+
+    function selectStream(stream) {
+      appState.activeStream = stream;
+
+      const tabs = [
+        { id: "tabOutage", name: "Outage" },
+        { id: "tabHelpdesk", name: "Helpdesk" },
+        { id: "tabPing", name: "Password/PingID" }
+      ];
+
+      tabs.forEach(t => {
+        const el = document.getElementById(t.id);
+        if (t.name === stream) {
+          el.className = "px-2.5 py-1 rounded font-medium bg-surface-elevated text-white border border-surface-borderLight transition";
+        } else {
+          el.className = "px-2.5 py-1 rounded font-medium text-slate-400 hover:text-white transition";
+        }
+      });
+
+      renderWorkbench();
+    }
+
+    function renderWorkbench() {
+      const tech = appState.selectedTechnician;
+      if (!tech) return;
+
+      document.getElementById("stageEmptyPrompt").classList.add("hidden");
+      document.getElementById("stageActiveView").classList.remove("hidden");
+      document.getElementById("stageFooter").classList.remove("hidden");
+
+      let isFulfilled = false;
+      if (appState.activeStream === "Outage") isFulfilled = tech.outageDone;
+      if (appState.activeStream === "Helpdesk") isFulfilled = tech.helpdeskDone;
+      if (appState.activeStream === "Password/PingID") isFulfilled = tech.pingDone;
+
+      const banner = document.getElementById("quotaBanner");
+      const dot = document.getElementById("quotaIndicatorDot");
+      const message = document.getElementById("quotaBannerMessage");
+      document.getElementById("quotaStreamTag").innerText = appState.activeStream.toUpperCase();
+
+      if (isFulfilled) {
+        banner.className = "p-3.5 rounded-lg border bg-emerald-500/5 border-emerald-500/20 text-emerald-400 flex items-center justify-between text-xs";
+        dot.className = "w-2 h-2 rounded-full bg-emerald-400";
+        message.innerText = `Audit Quota Met - A completed record exists for ${appState.activeStream} in ${appState.month}.`;
+      } else {
+        banner.className = "p-3.5 rounded-lg border bg-amber-500/5 border-amber-500/20 text-amber-400 flex items-center justify-between text-xs";
+        dot.className = "w-2 h-2 rounded-full bg-amber-400";
+        message.innerText = `Pending Audit - 1 review required for ${appState.activeStream} in ${appState.month}.`;
+      }
+
+      // Query candidate tickets
+      let eligible = [];
+      if (appState.activeStream === "Outage") {
+        eligible = appState.rawOutages.filter(o =>
+          o.CompletionMonth === appState.month &&
+          (tech.role === "T1" ? o.T1Analyst === tech.name : o.T2Analyst === tech.name)
+        );
+      } else {
+        eligible = appState.rawCallposts.filter(c =>
+          c.PostedMonth === appState.month &&
+          c.Analyst === tech.name &&
+          (c.Category === appState.activeStream || c.Category?.Value === appState.activeStream)
+        );
+      }
+
+      document.getElementById("eligibleCount").innerText = eligible.length;
+      const listContainer = document.getElementById("ticketsList");
+
+      if (eligible.length === 0) {
+        listContainer.innerHTML = `<div class="p-4 rounded border border-surface-border bg-surface-card/30 text-center text-xs text-slate-500 font-mono">No ${appState.activeStream} items recorded for this technician in ${appState.month}.</div>`;
+        bindTicketDetail(null);
+        return;
+      }
+
+      listContainer.innerHTML = eligible.map((ticket, idx) => {
+        const isSelected = appState.selectedTicket?.Title === ticket.Title;
+        return `
+          <div onclick="selectTicketIndex(${idx})" class="p-2.5 rounded border transition cursor-pointer flex items-center justify-between ${
+            isSelected
+              ? 'bg-surface-elevated border-blue-500/70 shadow-sm'
+              : 'bg-surface-card border-surface-border hover:border-surface-borderLight'
+          }">
+            <div>
+              <span class="text-xs font-mono font-medium text-blue-400">${ticket.Title}</span>
+              <p class="text-[11px] text-slate-400 truncate max-w-sm mt-0.5">${ticket.Snippet || ticket.MessageContent || 'Interaction log recorded'}</p>
+            </div>
+            <span class="text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+              ticket.Audited
+                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                : 'bg-surface-elevated text-slate-400 border-surface-border'
+            }">
+              ${ticket.Audited ? 'AUDITED' : 'AVAILABLE'}
+            </span>
+          </div>
+        `;
+      }).join("");
+
+      bindTicketDetail(eligible[0]);
+    }
+
+    function selectTicketIndex(idx) {
+      let eligible = [];
+      const tech = appState.selectedTechnician;
+      if (appState.activeStream === "Outage") {
+        eligible = appState.rawOutages.filter(o => o.CompletionMonth === appState.month && (tech.role === "T1" ? o.T1Analyst === tech.name : o.T2Analyst === tech.name));
+      } else {
+        eligible = appState.rawCallposts.filter(c => c.PostedMonth === appState.month && c.Analyst === tech.name && (c.Category === appState.activeStream || c.Category?.Value === appState.activeStream));
+      }
+      bindTicketDetail(eligible[idx]);
+    }
+
+    function bindTicketDetail(ticket) {
+      appState.selectedTicket = ticket;
+      const btn = document.getElementById("btnSubmitAudit");
+
+      if (!ticket) {
+        document.getElementById("ticketIdLabel").innerText = "INCxxxxxxx";
+        document.getElementById("ticketSummaryLabel").innerText = "No record available";
+        document.getElementById("ticketBodyContent").innerText = "No item selected for review.";
+        document.getElementById("teamsLinkAnchor").classList.add("hidden");
+        btn.disabled = true;
+        btn.classList.add("opacity-40", "cursor-not-allowed");
+        return;
+      }
+
+      btn.disabled = false;
+      btn.classList.remove("opacity-40", "cursor-not-allowed");
+
+      document.getElementById("ticketIdLabel").innerText = ticket.Title;
+      document.getElementById("ticketSummaryLabel").innerText = `${appState.selectedTechnician.name} - ${appState.activeStream}`;
+      document.getElementById("ticketBodyContent").innerText = ticket.Snippet || ticket.MessageContent || `Record: ${ticket.Title}\nProgram: Global Service Desk\nStream: ${appState.activeStream}\nMonth: ${appState.month}`;
+
+      const link = document.getElementById("teamsLinkAnchor");
+      if (ticket.MessageLink) {
+        link.href = ticket.MessageLink.Url || ticket.MessageLink;
+        link.classList.remove("hidden");
+      } else {
+        link.classList.add("hidden");
+      }
+    }
+
+    async function submitAuditAction() {
+      const tech = appState.selectedTechnician;
+      const ticket = appState.selectedTicket;
+      if (!tech || !ticket) return;
+
+      const btn = document.getElementById("btnSubmitAudit");
+      btn.innerText = "Recording...";
+      btn.disabled = true;
+
+      const record = {
+        Title: ticket.Title,
+        RoleAudited: tech.role,
+        AnalystAudited: tech.name,
+        AuditMonth: appState.month,
+        AuditCategory: appState.activeStream,
+        PulledBy: "Louis Samosino",
+        PulledDate: new Date().toISOString()
+      };
+
+      if (!IS_SHAREPOINT) {
+        // Prototype mode simulation
+        setTimeout(() => {
+          appState.rawAudits.push(record);
+          ticket.Audited = true;
+          rebuildRoster();
+          renderWorkbench();
+          btn.innerText = "Record Audit";
+          btn.disabled = false;
+        }, 200);
+        return;
+      }
+
+      // Real SharePoint REST Execution
+      try {
+        const digestRes = await fetch(`${SITE_URL}/_api/contextinfo`, {
+          method: "POST",
+          headers: { "Accept": "application/json;odata=verbose" }
+        });
+        const digestData = await digestRes.json();
+        const formDigest = digestData.d.GetContextWebInformation.FormDigestValue;
+
+        // Post into QA Audit Log
+        await fetch(`${SITE_URL}/_api/web/lists/getbytitle('QA Audit Log')/items`, {
+          method: "POST",
+          headers: {
+            "Accept": "application/json;odata=verbose",
+            "Content-Type": "application/json;odata=verbose",
+            "X-RequestDigest": formDigest
+          },
+          body: JSON.stringify({
+            "__metadata": { "type": "SP.Data.QAAuditLogListItem" },
+            "Title": ticket.Title,
+            "RoleAudited": tech.role,
+            "AnalystAudited": tech.name,
+            "AuditMonth": appState.month,
+            "AuditCategory": appState.activeStream,
+            "PulledBy": "Louis Samosino",
+            "PulledDate": new Date().toISOString()
+          })
+        });
+
+        // Mark Audited = true on origin list
+        const sourceList = appState.activeStream === "Outage" ? "Outage Sign-off Log" : "Callpost Log";
+        if (ticket.Id) {
+          await fetch(`${SITE_URL}/_api/web/lists/getbytitle('${sourceList}')/items(${ticket.Id})`, {
+            method: "POST",
+            headers: {
+              "Accept": "application/json;odata=verbose",
+              "Content-Type": "application/json;odata=verbose",
+              "X-RequestDigest": formDigest,
+              "X-HTTP-Method": "MERGE",
+              "If-Match": "*"
+            },
+            body: JSON.stringify({ "Audited": true })
+          });
+        }
+
+        await loadAllData();
+        renderWorkbench();
+        btn.innerText = "Record Audit";
+        btn.disabled = false;
+      } catch (err) {
+        console.error("Failed to commit audit record:", err);
+        btn.innerText = "Record Audit";
+        btn.disabled = false;
+        alert("Unable to commit record to SharePoint. Check network connection.");
+      }
+    }
+  </script>
+</body>
+</html>
